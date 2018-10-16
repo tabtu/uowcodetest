@@ -17,6 +17,7 @@ import java.util.List;
  * @update  Tab Tu on Oct.16 2018
  * @since	1.0
  *
+ * TODO: 1, a process to check membership status daily, update User.is_member
  */
 
 @Entity(name = "User")
@@ -37,21 +38,20 @@ public class User extends Entitys implements Serializable {
     private String email;
     @Column(nullable = false)
     private boolean enabled;
-    private String picture;
-    private String introduction;
     @Column(nullable = false)
     private Date createtime;
     @Column(nullable = false)
     private Date updatetime;
     private String name;
-    private Date birth;
-    private boolean gender;
     @Column(nullable = false)
     private boolean is_member;  // membership card
-//    private MemberShip member_ship;  // membership information
+
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinColumn(name="user_member")
+    private MemberShip member_ship;  // membership information
 
     @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinTable(name = "tv_user_follow", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "follow_id"))
+    @JoinTable(name = "db_user_follow", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "follow_id"))
     @JsonBackReference
     //@JsonIgnoreProperties
     private List<User> follows = new ArrayList<>();
@@ -124,22 +124,6 @@ public class User extends Entitys implements Serializable {
         this.enabled = enabled;
     }
 
-    public String getPicture() {
-        return picture;
-    }
-
-    public void setPicture(String picture) {
-        this.picture = picture;
-    }
-
-    public String getIntroduction() {
-        return introduction;
-    }
-
-    public void setIntroduction(String introduction) {
-        this.introduction = introduction;
-    }
-
     public Date getCreatetime() {
         return createtime;
     }
@@ -162,22 +146,6 @@ public class User extends Entitys implements Serializable {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public Date getBirth() {
-        return birth;
-    }
-
-    public void setBirth(Date birth) {
-        this.birth = birth;
-    }
-
-    public boolean getGender() {
-        return gender;
-    }
-
-    public void setGender(boolean gender) {
-        this.gender = gender;
     }
 
     public List<User> getFollows() {
@@ -204,12 +172,12 @@ public class User extends Entitys implements Serializable {
         this.is_member = ismb;
     }
 
-//    public MemberShip getMember_ship() {
-//        return member_ship;
-//    }
-//
-//    public void setMember_ship(MemberShip mbsp) {
-//        this.member_ship = mbsp;
-//    }
+    public MemberShip getMember_ship() {
+        return member_ship;
+    }
+
+    public void setMember_ship(MemberShip mbsp) {
+        this.member_ship = mbsp;
+    }
 
 }
