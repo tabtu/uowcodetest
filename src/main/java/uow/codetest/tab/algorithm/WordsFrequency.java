@@ -11,12 +11,15 @@ import java.util.regex.Pattern;
  * - "Write a program which can count the word frequency with multi-threads."
  * 1, Read file from hardware and analyze content, put into words list. (FileReader)
  * 2, Separate words list into some blocks, can analyze HTML file directly. (RE, StringToken)
- * 3, Create multiple threads to count word frequency. Assume that the maximum number of threads is 100. (ConcurrentHashMap, ExecutorService)
- * 4, Merge all result into a map. (ConcurrentHashMap)
+ * 3, Create multiple threads to count word frequency. Assume that the maximum number of threads is 100. (Hashtable, ExecutorService)
+ * 4, Merge all result into a map. (Map)
  *
  * -- Written by Tab Tu, (c) 2018 All Rights Reserved
- * -- Updated Oct.15 2018
+ * -- Created on Oct.15 2018
+ * -- Updated on Oct.18 2018
+ *    Use Hashtable to protect data in thread. Copy Arrays into small block to save space.
  */
+
 @SuppressWarnings("unchecked")
 public class WordsFrequency {
 
@@ -36,7 +39,7 @@ public class WordsFrequency {
                 System.out.println("error: File " + args[0] + " does not exist in this folder.");
             } else {
                 WordsFrequency tst = new WordsFrequency();
-                ConcurrentHashMap map = tst.words_frequency(args[0], Integer.parseInt(args[1]));
+                Map map = tst.words_frequency(args[0], Integer.parseInt(args[1]));
 
                 // sorted by key and print.
                 Map<String, Integer> treeMap = new TreeMap<String, Integer>(map);
@@ -51,7 +54,7 @@ public class WordsFrequency {
      * @param filename  target file name and path.
      * @param threadnum the number of threads to be used.
      */
-    public ConcurrentHashMap<String, Integer> words_frequency(String filename, int threadnum) {
+    public Map<String, Integer> words_frequency(String filename, int threadnum) {
         try {
             // read file to word list from path.
             String[] tmp = readfile2strings(filename);
@@ -80,7 +83,7 @@ public class WordsFrequency {
                 ((MyCallable) c).set_task("Thread" + j);
                 ((MyCallable) c).set_start(start);
                 ((MyCallable) c).set_end(end);
-                ((MyCallable) c).set_content(tmp);
+                ((MyCallable) c).set_content(Arrays.copyOfRange(tmp, start, end));
 
                 // submit mission to thread and return future object.
                 Future f = pool.submit(c);
@@ -90,9 +93,9 @@ public class WordsFrequency {
             pool.shutdown();
 
             // merge all result objects to a hashmap.
-            ConcurrentHashMap<String, Integer> result = new ConcurrentHashMap<>();
+            Hashtable<String, Integer> result = new Hashtable<>();
             for (Future f : list) {
-                ConcurrentHashMap<String, Integer> map = (ConcurrentHashMap<String, Integer>) f.get();
+                Hashtable<String, Integer> map = (Hashtable<String, Integer>) f.get();
                 result.putAll(map);
             }
 
@@ -107,22 +110,22 @@ public class WordsFrequency {
      */
     class MyCallable implements Callable<Object> {
         /**
-         * task identification.
+         * task identification, print only.
          */
         private String _task;
 
         /**
-         * start position.
+         * start position, print only.
          */
         private int _start;
 
         /**
-         * end position.
+         * end position, print only.
          */
         private int _end;
 
         /**
-         * target content.
+         * the content that the thread need to analyze.
          */
         private String[] _content;
 
@@ -146,10 +149,9 @@ public class WordsFrequency {
         public Object call() throws Exception {
             long curtime = System.currentTimeMillis();
             // inner thread, use a thread-safe map to protect data.
-            ConcurrentHashMap map = new ConcurrentHashMap();
-            for (int i = _start; i < _end; i++) {
-                String key = _content[i];
-                Integer frequency = (Integer) map.get(key);
+            Hashtable map = new Hashtable();
+            for (String ele : _content) {
+                Integer frequency = (Integer) map.get(ele);
                 if (frequency == null) {
                     // can not find the word.
                     frequency = 1;
@@ -157,7 +159,7 @@ public class WordsFrequency {
                     // read the frequency and add by 1.
                     frequency = new Integer(frequency.intValue() + 1);
                 }
-                map.put(key, frequency);
+                map.put(ele, frequency);
             }
             System.out.println("  " + _task + " start at " + _start + " and end at " + _end + ", cost " + (System.currentTimeMillis() - curtime) + "ms.");
             return map;
